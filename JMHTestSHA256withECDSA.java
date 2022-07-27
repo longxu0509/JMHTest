@@ -44,6 +44,14 @@ public class JMHTestSHA256withECDSA {
         sk = keyPair.getPrivate();
         signed = makeSign(sk, message);
     }
+    
+    public static KeyPair getKeyPair(String stdName) throws Exception {
+        ECGenParameterSpec ecSpec = new ECGenParameterSpec(stdName);
+        KeyPairGenerator kp = KeyPairGenerator.getInstance("EC");
+        kp.initialize(ecSpec, new SecureRandom());
+        KeyPair keyPair = kp.generateKeyPair();
+        return keyPair;
+    }
 
     public boolean veritySign(PublicKey pk, byte[] signed, byte[] message) throws Exception {
         Signature v = Signature.getInstance("SHA256withECDSA");
@@ -52,7 +60,15 @@ public class JMHTestSHA256withECDSA {
         boolean valid = v.verify(signed);
         return valid;
     }
-
+   
+    public byte[] makeSign(PrivateKey sk, byte[] message) throws Exception {
+        Signature s = Signature.getInstance("SHA256withECDSA");
+        s.initSign(sk);
+        s.update(message);
+        byte[] signed = s.sign();
+        return signed;
+    }
+    
     @Benchmark
     public void testSign() throws Exception {
         makeSign(sk, message);
@@ -61,22 +77,6 @@ public class JMHTestSHA256withECDSA {
     @Benchmark
     public void testVeritySign() throws Exception {
         veritySign(pk, signed, message);
-    }
-
-    public byte[] makeSign(PrivateKey sk, byte[] message) throws Exception {
-        Signature s = Signature.getInstance("SHA256withECDSA");
-        s.initSign(sk);
-        s.update(message);
-        byte[] signed = s.sign();
-        return signed;
-    }
-
-    public static KeyPair getKeyPair(String stdName) throws Exception {
-        ECGenParameterSpec ecSpec = new ECGenParameterSpec(stdName);
-        KeyPairGenerator kp = KeyPairGenerator.getInstance("EC");
-        kp.initialize(ecSpec, new SecureRandom());
-        KeyPair keyPair = kp.generateKeyPair();
-        return keyPair;
     }
 
     public static void main(String[] args) throws Exception {
