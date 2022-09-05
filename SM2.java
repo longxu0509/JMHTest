@@ -120,8 +120,6 @@ public class SM2 {
                 return INFINTY;
             }
         } else { // p1 != p2
-            BigInteger a1 = p2.getAffineY().subtract(p1.getAffineY()).mod(p);
-            BigInteger a2 = p2.getAffineX().subtract(p1.getAffineX()).mod(p);
             k = p2.getAffineY().subtract(p1.getAffineY())
                       .multiply(p2.getAffineX().subtract(p1.getAffineX()).modInverse(p)).mod(p);
 
