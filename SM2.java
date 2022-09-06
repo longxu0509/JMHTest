@@ -1,12 +1,12 @@
+package ustc.edu.cn;
+
 import javafx.util.Pair;
 import org.bouncycastle.math.ec.WNafUtil;
-
 import java.math.BigInteger;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.SecureRandom;
-import java.security.spec.ECFieldFp;
-import java.security.spec.ECPoint;
-import java.security.spec.EllipticCurve;
+import java.security.*;
+import java.security.spec.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author xulong
@@ -16,17 +16,19 @@ import java.security.spec.EllipticCurve;
 public class SM2 {
 
     public static String[] sm2_param = {
-        "FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF",
-        "FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC",
-        "28E9FA9E9D9F5E344D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93",
-        "FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123",
-        "32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7",
-        "BC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0"
+            "FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF",
+            "FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC",
+            "28E9FA9E9D9F5E344D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93",
+            "FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123",
+            "32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7",
+            "BC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0"
     };
 
     public final static ECPoint INFINTY = new ECPoint(BigInteger.ZERO, BigInteger.ONE);
     public final static BigInteger TWO = new BigInteger("2");
     public final static BigInteger THREE = new BigInteger("3");
+    public final static BigInteger FOUR = new BigInteger("4");
+
     public static SM2 Instance()
     {
         return new SM2();
@@ -42,6 +44,7 @@ public class SM2 {
     private final ECPoint g;
     private final int cofactor;
     private  SecureRandom random;
+    private List<ECPoint> mutiTable = new ArrayList<>();
 
     public SM2() {
         this.p = new BigInteger(sm2_param[0], 16);
@@ -54,6 +57,12 @@ public class SM2 {
         this.curve = new EllipticCurve(new ECFieldFp(p), a, b);
         this.cofactor = 1;
         this.random = new SecureRandom();
+        // init mutiTable
+        ECPoint temp = g;
+        for (int i = 0; i <= 256; i++) {
+            this.mutiTable.add(temp);
+            temp = pointAdd(temp, temp);
+        }
     }
 
     public BigInteger getP() {
@@ -103,6 +112,7 @@ public class SM2 {
         else
             return new ECPoint(p.getAffineX(), p.getAffineY().negate());
     }
+
     // point add
     public ECPoint pointAdd(ECPoint p1, ECPoint p2) {
         if (p1.equals(INFINTY))
@@ -120,10 +130,8 @@ public class SM2 {
                 return INFINTY;
             }
         } else { // p1 != p2
-            BigInteger a1 = p2.getAffineY().subtract(p1.getAffineY()).mod(p);
-            BigInteger a2 = p2.getAffineX().subtract(p1.getAffineX()).mod(p);
             k = p2.getAffineY().subtract(p1.getAffineY())
-                      .multiply(p2.getAffineX().subtract(p1.getAffineX()).modInverse(p)).mod(p);
+                    .multiply(p2.getAffineX().subtract(p1.getAffineX()).modInverse(p)).mod(p);
 
         }
         BigInteger p3x = k.multiply(k).mod(p).subtract(p1.getAffineX()).subtract(p2.getAffineX()).mod(p);
@@ -158,16 +166,92 @@ public class SM2 {
         return res;
     }
 
-    // Montgomery Ladder
-    public ECPoint MontgomeryMuti(ECPoint p, BigInteger s) {
+    // doubleAndAdd Recursive algorithm:
+    public ECPoint doubleAndAddRecursive(ECPoint p, BigInteger s) {
         if (s.equals(BigInteger.ZERO))
             return INFINTY;
         else if (s.equals(BigInteger.ONE))
             return p;
         else if (s.mod(TWO).equals(BigInteger.ONE))
-            return pointAdd(p, MontgomeryMuti(p, s.subtract(BigInteger.ONE)));
+            return pointAdd(p,
+                    doubleAndAddRecursive(p, s.subtract(BigInteger.ONE)));
         else
-            return MontgomeryMuti(pointAdd(p, p), s.divide(TWO));
+            return doubleAndAddRecursive(pointAdd(p, p), s.divide(TWO));
+    }
+
+    // doubleAndAdd SearchTable
+    public ECPoint doubleAndAddSearchTable(ECPoint p, BigInteger s) {
+        ECPoint res = INFINTY;
+        int i = 0;
+        while (s.compareTo(BigInteger.ZERO) == 1) {
+            if (s.testBit(0))
+                res = pointAdd(res, mutiTable.get(i));
+            i++;
+            s = s.shiftRight(1);
+        }
+        return res;
+    }
+
+    // get k NAF code
+    public BigInteger[] NAF(BigInteger k) {
+        BigInteger []res = new BigInteger [k.bitLength()+1];
+        int m = 0;
+        while (k.compareTo(BigInteger.ZERO) == 1) {
+            if (k.mod(TWO).equals(BigInteger.ONE)) {
+                res[m] = TWO.subtract(k.mod(FOUR));
+                k = k.subtract(res[m]);
+            } else {
+                res[m] = BigInteger.ZERO;
+            }
+            k = k.divide(TWO);
+            m++;
+        }
+        return res;
+    }
+
+    // NAF Multiply
+    public ECPoint NAFMultiply(ECPoint p, BigInteger k) {
+        BigInteger []a = NAF(k);
+        ECPoint temp = p;
+        for (int i = k.bitLength()-1; i >= 0; i--) {
+            temp = pointAdd(temp, temp);
+            if (a[i].equals(BigInteger.ONE))
+                temp = pointAdd(temp, p);
+            if (a[i].equals(BigInteger.ONE.negate()))
+                temp = pointAdd(temp, negate(p));
+        }
+        return temp;
+    }
+
+    // NAF Multiply SearchTable
+    public ECPoint NAFMultiplySearchTable(ECPoint p, BigInteger k) {
+        BigInteger []a = NAF(k);
+        ECPoint temp = p;
+        int t = k.bitLength()-1;
+        for (int i = t; i >= 0; i--) {
+            if (a[i].equals(BigInteger.ONE))
+                temp = pointAdd(mutiTable.get(t-i+1), p);
+            if (a[i].equals(BigInteger.ONE.negate()))
+                temp = pointAdd(mutiTable.get(t-i+1), negate(p));
+        }
+        return temp;
+    }
+
+    // Montgomery Ladder
+    public ECPoint montgomeryMultiply(ECPoint p, BigInteger s) {
+        ECPoint p0 = INFINTY;
+        ECPoint p1 = p;
+        int idx = s.bitLength();
+        while (idx >= 0) {
+            if (s.testBit(idx--)) {
+                p0 = pointAdd(p0, p1);
+                p1 = pointAdd(p1, p1);
+            } else {
+                p1 = pointAdd(p0, p1);
+                p0 = pointAdd(p0, p0);
+            }
+        }
+        return p0;
     }
 
     // generate keyPair
@@ -186,17 +270,24 @@ public class SM2 {
         }
         ECPoint Q = null;
         switch (multiply) {
+            case "doubleAndAddSearchTable":
+                Q = doubleAndAddSearchTable(getG(), d); break;
             case "doubleAndAddDec":
                 Q = doubleAndAddDec(getG(), d); break;
             case "doubleAndAddInc":
                 Q = doubleAndAddInc(getG(), d); break;
-            case "MontgomeryMuti":
-                Q = MontgomeryMuti(getG(), d); break;
+            case "doubleAndAddRecursive":
+                Q = doubleAndAddRecursive(getG(), d); break;
+            case "NAFMultiply":
+                Q = NAFMultiply(getG(), d); break;
+            case "NAFMultiplySearchTable":
+                Q = NAFMultiplySearchTable(getG(), d); break;
+            case "montgomeryMultiply":
+                Q = montgomeryMultiply(getG(), d); break;
             default:
                 System.out.println("please input correct method name");
                 break;
         }
-
         return new Pair<BigInteger, ECPoint>(d, Q);
     }
 
@@ -214,7 +305,7 @@ public class SM2 {
             return false;
 
         if ((pk.getAffineY().multiply(pk.getAffineY()).mod(p))
-            .compareTo(pk.getAffineX().pow(3).add(getA().multiply(pk.getAffineX())).add(getB()).mod(getP())) != 0)
+                .compareTo(pk.getAffineX().pow(3).add(getA().multiply(pk.getAffineX())).add(getB()).mod(getP())) != 0)
             return false;
 
         if (!doubleAndAddDec(pk, getN()).equals(INFINTY))
@@ -225,7 +316,7 @@ public class SM2 {
 
     public static void main(String[] args) throws InvalidAlgorithmParameterException {
         SM2 sm2 = SM2.Instance();
-        Pair<BigInteger, ECPoint> keyPair = sm2.generateKeyPair("MontgomeryMuti");
+        Pair<BigInteger, ECPoint> keyPair = sm2.generateKeyPair("NAFMultiplySearchTable");
         if (sm2.verityPublicKey(keyPair.getValue())){
             System.out.println("verity success");
         } else {

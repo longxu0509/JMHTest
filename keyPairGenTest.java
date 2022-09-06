@@ -1,3 +1,5 @@
+package ustc.edu.cn;
+
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
@@ -21,18 +23,19 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.SECONDS)
 
 public class keyPairGenTest {
-    private SM2 sm2;
+    private ustc.edu.cn.SM2 sm2;
 
-    @Param(value = {"MontgomeryMuti", "doubleAndAddInc", "doubleAndAddDec"})
+    @Param(value = {"doubleAndAddInc", "doubleAndAddDec", "doubleAndAddRecursive", "doubleAndAddSearchTable",
+            "NAFMultiply", "NAFMultiplySearchTable", "montgomeryMultiply"})
     private String multiply;
 
     @Setup
     public void setUp() throws Exception {
-        sm2 = SM2.Instance();
+        sm2 = ustc.edu.cn.SM2.Instance();
     }
 
     @Benchmark
-    public void testMontgomery() throws Exception {
+    public void testPointMultiply() throws Exception {
         sm2.generateKeyPair(multiply);
     }
 
