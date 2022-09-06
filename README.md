@@ -39,8 +39,9 @@ JMHTestSHA256withECDSA.testVeritySign  1048576            &ensp;     secp256k1  
 编写JMH性能测试程序，对上面两种生成公钥的方法进行性能测试。
 分析性能差异的原因。
 
-##### 参考wiki实现了三种方式的标量乘法
-1. Double-and-add,  Iterative algorithm, index increasing
+##### 参考wiki实现了几种常见标量乘法，并针对部分算法进行了一些优化
+(1) Double-and-add
+   1. Iterative algorithm, index increasing
 ```
  public ECPoint doubleAndAddInc(ECPoint p, BigInteger s) {
         ECPoint res = INFINTY;
@@ -55,7 +56,7 @@ JMHTestSHA256withECDSA.testVeritySign  1048576            &ensp;     secp256k1  
     }
 ```
 
-2. Double-and-add,  Iterative algorithm, index decreasing
+   2. Iterative algorithm, index decreasing
 ```
   public ECPoint doubleAndAddDec(ECPoint p, BigInteger s) {
       ECPoint res = p;
@@ -70,8 +71,7 @@ JMHTestSHA256withECDSA.testVeritySign  1048576            &ensp;     secp256k1  
       return res;
   }
  ```
- 
- 3. Montgomery Ladder
+   3. Iterative algorithm, index decreasing
  ```
   public ECPoint MontgomeryMuti(ECPoint p, BigInteger s) {
         if (s.equals(BigInteger.ZERO))
@@ -84,8 +84,94 @@ JMHTestSHA256withECDSA.testVeritySign  1048576            &ensp;     secp256k1  
             return MontgomeryMuti(pointAdd(p, p), s.divide(TWO));
     }
  ```
- ##### 并对三种方法进行了性能测试结果如下
- Benchmark &emsp; &emsp; &emsp; &emsp;&emsp; &emsp;&emsp; &emsp;  &emsp;       &emsp; &emsp;                   Mode &emsp; &emsp;    Cnt &emsp; &emsp; Score&emsp; &emsp;  Error &emsp; &emsp;  Units <br/>
-keyPairGenTest.testMontgomery   &emsp; &emsp;  &emsp;       thrpt  &emsp; &emsp;   &emsp;     3  &emsp; &emsp;   425.522 ± 351.433 &emsp; &emsp;    ops/s <br/>
-keyPairGenTest.testdoubleAndAddDec &emsp;   thrpt &emsp; &emsp;  &emsp;      3  &emsp; &emsp;   469.615 ± 276.235&emsp; &emsp;     ops/s <br/>
-keyPairGenTest.testdoubleAndAddInc  &emsp; thrpt &emsp;     &emsp;   &emsp; 3  &emsp; &emsp;   459.042 ± 104.468&emsp; &emsp;     ops/s <br/>
+   4. Search Table 
+ ```
+    public ECPoint doubleAndAddSearchTable(ECPoint p, BigInteger s) {
+        ECPoint res = INFINTY;
+        int i = 0;
+        while (s.compareTo(BigInteger.ZERO) == 1) {
+            if (s.testBit(0))
+                res = pointAdd(res, mutiTable.get(i));
+            i++;
+            s = s.shiftRight(1);
+        }
+        return res;
+    }
+ ```
+(2) NAF标量乘法
+ ```
+// get k NAF code
+    public BigInteger[] NAF(BigInteger k) {
+        BigInteger []res = new BigInteger [k.bitLength()+1];
+        int m = 0;
+        while (k.compareTo(BigInteger.ZERO) == 1) {
+            if (k.mod(TWO).equals(BigInteger.ONE)) {
+                res[m] = TWO.subtract(k.mod(FOUR));
+                k = k.subtract(res[m]);
+            } else {
+                res[m] = BigInteger.ZERO;
+            }
+            k = k.divide(TWO);
+            m++;
+        }
+        return res;
+    }
+
+    // NAF Multiply
+    public ECPoint NAFMultiply(ECPoint p, BigInteger k) {
+        BigInteger []a = NAF(k);
+        ECPoint temp = p;
+        for (int i = k.bitLength()-1; i >= 0; i--) {
+            temp = pointAdd(temp, temp);
+            if (a[i].equals(BigInteger.ONE))
+                temp = pointAdd(temp, p);
+            if (a[i].equals(BigInteger.ONE.negate()))
+                temp = pointAdd(temp, negate(p));
+        }
+        return temp;
+    }
+ ```
+  基于预计算改进的NAF
+ ```
+  public ECPoint NAFMultiplySearchTable(ECPoint p, BigInteger k) {
+        BigInteger []a = NAF(k);
+        ECPoint temp = p;
+        int t = k.bitLength()-1;
+        for (int i = t; i >= 0; i--) {
+            if (a[i].equals(BigInteger.ONE))
+                temp = pointAdd(mutiTable.get(t-i+1), p);
+            if (a[i].equals(BigInteger.ONE.negate()))
+                temp = pointAdd(mutiTable.get(t-i+1), negate(p));
+        }
+        return temp;
+    }
+ ```
+
+（3）Montgomery Ladder
+ ```
+  public ECPoint montgomeryMultiply(ECPoint p, BigInteger s) {
+        ECPoint p0 = INFINTY;
+        ECPoint p1 = p;
+        int idx = s.bitLength();
+        while (idx >= 0) {
+            if (s.testBit(idx--)) {
+                p0 = pointAdd(p0, p1);
+                p1 = pointAdd(p1, p1);
+            } else {
+                p1 = pointAdd(p0, p1);
+                p0 = pointAdd(p0, p0);
+            }
+        }
+        return p0;
+    }
+ ```
+ ##### 并对上述方法进行了性能测试结果如下
+
+ Benchmark &emsp; &emsp; &emsp; &emsp;&emsp; &emsp;&emsp; &emsp;  &emsp;&emsp;   &emsp;&emsp; &emsp; (multiply) &emsp; &emsp;&emsp;  &emsp;  Mode&emsp;  &emsp;  Cnt &emsp;  &emsp;    Score   &emsp;  Error &emsp;    &emsp; Units<br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp; doubleAndAddInc &emsp; &emsp;&emsp;&emsp;   thrpt  &emsp;&emsp;&emsp;   3  &emsp; 423.421 ±  779.448 &emsp; &emsp; ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp; doubleAndAddDec &emsp; &emsp;&emsp;  &emsp;thrpt &emsp;&emsp;&emsp;    3  &emsp; 405.562 ±  191.200 &emsp;&emsp;  ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp;    doubleAndAddRecursive&emsp;   thrpt &emsp; &emsp;&emsp;   3  &emsp; 398.297 ±  279.366 &emsp; &emsp;  ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp;  doubleAndAddSearchTable  thrpt &emsp; &emsp; &emsp; 3 &emsp; 1303.378 ± 1224.276 &emsp;  ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp; NAFMultiply  &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;thrpt &emsp; &emsp;  3  &emsp; 473.275 ±  223.927 &emsp;  &emsp; ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp;   NAFMultiplySearchTable &emsp;thrpt  &emsp;&emsp; &emsp;  3 &emsp; 1737.896 ± 1997.995 &emsp; ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp;   montgomeryMultiply &emsp; &emsp; &emsp; thrpt &emsp; &emsp; 3  &emsp;&emsp; 291.631 ±  538.497 &emsp;  ops/s <br/>
