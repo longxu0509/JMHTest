@@ -74,13 +74,13 @@ y^2=x^3+ax+b
 $$
 如下是方程表示的曲线，随着a和b的不同，椭圆曲线也会在平面上呈现出不同的形状，但椭圆曲线始终是关于x轴对称的。以下是不同参数的椭圆曲线图。
 
- ![image-20220915165902831](C:\Users\xldream\AppData\Roaming\Typora\typora-user-images\image-20220915165902831.png) 
+ ![image.png](https://s2.loli.net/2022/09/15/fnXgoIjr4KJtQNE.png)
 
 ​                                  图1 不同参数的椭圆曲线
 
 椭圆曲线也可以有运算，像实数的加减乘除一样，这就需要使用到加群。它的点加法是这样定义的，椭圆曲线上两个点P和Q他们相加的结果就是过两点做一条直线，与曲线相交与第三个点R，R关于X轴的称点就是相加的结果，二倍运算，可以看成P+P，则是过P点做切线后续步骤和之前一样如下图所示。通过加法运算可以构造一个循环阿贝尔群，群的生成元为g点，群的阶数为n。这个有什么用呢，由于椭圆曲线系数乘法的机制，在已知参数k与基点P坐标时，求公钥Q=kP的运算是相对容易的；我们可以通过Double-and-add和Montgomery Ladder等算法快速求解，时间复杂度是$O（logn）$。
 
-![image-20220915175803208](C:\Users\xldream\AppData\Roaming\Typora\typora-user-images\image-20220915175803208.png)
+![image.png](https://s2.loli.net/2022/09/15/mukFHWpesDZdnx5.png)
 
 ​                                                                         图2 P+Q =R
 
@@ -90,13 +90,13 @@ $$
 
 (1) Double-and-add
 
-Double-and-add为标量乘法中比较简单、最经典的算法，其一次运算时点加和倍点所构成，整数k可以表示成一个长度为![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps6.png)二进制序列，则k可以表示如下：
+Double-and-add为标量乘法中比较简单、最经典的算法，其一次运算时点加和倍点所构成，整数k可以表示成一个长度为$l$的二进制序列，则k可以表示如下：
 
-![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps7.png)
+![wps7.png](https://s2.loli.net/2022/09/15/oXEjBgRJWADHNeS.png)
 
-则![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps8.png)可以表示如下可以变成![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps9.png)个部分相加，从而大大减少倍乘次数
+则kP可以表示如下可以变成$l$个部分相加，从而大大减少倍乘次数
 
-![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps10.png)
+![wps10.png](https://s2.loli.net/2022/09/15/XzhiFHpVN3B84Ss.png)
 
 以下是Double-and-add的几种实现：
 
@@ -147,7 +147,7 @@ $l$表示k的二进制长度，二进制算法里非0比特的数量是$l/2$，�
 
    4. Search Table 
 
-​        仔细观察$kp$的二进制展开式，我发现需要相加的部分总是固定的![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps16.png)，所以想到能不能才用空间换时间的方式，预先将这些中间值给算好，保留到数组中，需要用到时直接从数组中拿，从而减少了点的倍乘操作。经JMH测试发现采用计算效率可以提升**3倍**左右。
+​        仔细观察$kp$的二进制展开式，我发现需要相加的部分总是固定的，![wps16.png](https://s2.loli.net/2022/09/15/miLYhr973pPySFZ.png)所以想到能不能才用空间换时间的方式，预先将这些中间值给算好，保留到数组中，需要用到时直接从数组中拿，从而减少了点的倍乘操作。经JMH测试发现采用计算效率可以提升**3倍**左右。
 
  ```
  private List<ECPoint> mutiTable = new ArrayList<>();  
@@ -209,17 +209,17 @@ $l$表示k的二进制长度，二进制算法里非0比特的数量是$l/2$，�
         return temp;
     }
  ```
- 关于NAF标量乘法的具体计算效率，我们可以做一个简单的分析，是私钥k的二进制表示序列长度为![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps17.png)，NAF表示的序列长度为![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps18.png)，一次倍点的运算时间为M，由于在椭圆曲线上可以忽略由$P$计算$-P$的花费，所以这里设点加和点减运算的时间均为A。
+ 关于NAF标量乘法的具体计算效率，我们可以做一个简单的分析，是私钥k的二进制表示序列长度为$l_1$，NAF表示的序列长度为$l_2$，一次倍点的运算时间为M，由于在椭圆曲线上可以忽略由$P$计算$-P$的花费，所以这里设点加和点减运算的时间均为A。
 
-由上分析可知，k的二进制序列中1的个数为![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps21.png)，没有优化的二进制标量乘法的运算时间![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps22.png)约为![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps23.png)次倍点与![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps24.png)次点加运行所消耗的时间的总和：
+由上分析可知，k的二进制序列中1的个数为$l_1/2$，没有优化的二进制标量乘法的运算时间$T_1$约为$l_1$次倍点与$l_2/2$次点加运行所消耗的时间的总和：
 
-![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps25.png)
+![wps25.png](https://s2.loli.net/2022/09/15/aGuRQ1MwIcNzTPs.png)
 
 根据NAF的性质可知，二元NAF序列中非零个数约为![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps26.png)，则一次二元NAF标量乘法的运算时间![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps27.png)约为![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps28.png)次倍点和![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps29.png)次点加或点减运算所消耗时间的总和：
 
-![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps30.png)
+![wps30.png](https://s2.loli.net/2022/09/15/oRiEdSKXNUcmqLJ.png)
 
-由NAF性质可知![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps31.png)最多比![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps32.png)大1，由于k的长度较长，![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps33.png)和![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps34.png)可以近似相等，可以看出NAF标量乘法在效率上有了较大的提高。同理也可以采用查表的方式进行对倍乘项M的消除，此时消耗时间就只剩下![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps35.png)次点加或点减运算。
+由NAF性质可知$l_2$最多比$l_1$大1，由于k的长度较长，$l_2$和可$l_1$以近似相等，可以看出NAF标量乘法在效率上有了较大的提高。同理也可以采用查表的方式进行对倍乘项M的消除，此时消耗时间就只剩下$l_2/3$次点加或点减运算。
 
 ​		 NAF标量乘法效率这么高，那是不是就可以高枕无忧了呢，其实它也缺陷，NAF算法不能很好的抵抗SPA攻击。SPA攻击是通过采集密码芯片在进行NAF标量乘运算过程的功耗波形，利用密钥与运算间的相关性从功耗波形中对秘钥进行分析提取。NAF有倍乘、点加、点减这三种操作，在功耗波形中，0与非0很容易分辨出，即使采用了查表法改进的NAF虽然消除了倍点运算，但是点加，点减也较容易从功耗波形看出明显的区别，所以NAF算法在遭受SPA攻击时，对于信息的安全会构成很大的威胁。
 
@@ -262,7 +262,7 @@ Montgomery阶梯算法如下所示.实际上,算法中的p0总是存储了目前
         return p0;
     }
  ```
-以上就是标量乘法，已知k和P我们计算公钥Q。而已知基点P和公钥Q坐标情况下求解参数k则是非常困难的，因为椭圆曲线上加法的特性，这些点之间没有规律可言，并且此时的k足够大，目前最好的解法的时间复杂度是![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps36.png) 看似是多项式的复杂度，请注意这里的n非常大，以256位为例，则时间复杂度就是![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps37.png)，是指数时间复杂度，这个数字非常大，常数时间复杂度不可解。对于一般曲线的离散对数问题，目前的求解方法都为指数级计算复杂度，未发现有效的亚指数级 计算复杂度的一般攻击方法；而对于某些特殊曲线的离散对数问题，存在多项式级计算复杂度或者亚 指数级计算复杂度算法。选择曲线时，应避免使用易受上述方法攻击的密码学意义上的弱椭圆曲线。
+以上就是标量乘法，已知k和P我们计算公钥Q。而已知基点P和公钥Q坐标情况下求解参数k则是非常困难的，因为椭圆曲线上加法的特性，这些点之间没有规律可言，并且此时的k足够大，目前最好的解法的时间复杂度是 $O(n^{1/2})$看似是多项式的复杂度，请注意这里的n非常大，以256位为例，则时间复杂度就是 $O(n^{256/2})$, 是指数时间复杂度，这个数字非常大，常数时间复杂度不可解。对于一般曲线的离散对数问题，目前的求解方法都为指数级计算复杂度，未发现有效的亚指数级 计算复杂度的一般攻击方法；而对于某些特殊曲线的离散对数问题，存在多项式级计算复杂度或者亚 指数级计算复杂度算法。选择曲线时，应避免使用易受上述方法攻击的密码学意义上的弱椭圆曲线。
 
 ##### 3.3 ECC算法生成秘钥对
 
@@ -274,9 +274,9 @@ Montgomery阶梯算法如下所示.实际上,算法中的p0总是存储了目前
 
 输出：与椭圆曲线系统参数相关的一个秘钥对(d,P)。
 
-① 用随机数发生器产生整数![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps38.png) 作为算法的私钥。
+① 用随机数发生器产生整数![wps38.png](https://s2.loli.net/2022/09/15/HLdc92jFUR5nMb8.png) 作为算法的私钥。
 
-② G为基点，计算点![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps39.png)
+② G为基点，计算点![wps39.png](https://s2.loli.net/2022/09/15/kLKQDqN7zcxZoYV.png)
 
 ③ 密钥对是(d,P)，其中d为私钥，P为公钥。
 
@@ -323,13 +323,13 @@ public Pair<BigInteger, ECPoint> generateKeyPair(String multiply) {
 
 公钥生成了，还需要对它进行验证，验证生成的公钥是否满足要求，我们的算法是否是正确的。参考SM2总则，一般需要验证以下几点：
 
-a) 验证公钥Q不是无穷远点![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps40.png)
+a) 验证公钥Q不是无穷远点O
 
-b) 验证公钥Q的坐标是域![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps41.png)中的元素
+b) 验证公钥Q的坐标是域$F_p$中的元素
 
-c) 验证![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps42.png)
+c) 验证![wps42.png](https://s2.loli.net/2022/09/15/ORT6MjSxgyQHLfP.png)
 
-d) 验证![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps43.png)
+d) 验证$nP=O$
 
    以下是验证公钥的代码实现：
 
@@ -373,19 +373,19 @@ public boolean verityPublicKey(ECPoint pk) {
 后来我们发现上述改进算法虽然消除了倍点操作，但是还是有点加操作，于是想到能不能对k进行重新编码，使非0位个数变少，这样就引出了带符号的非相邻表示型NAF，采用NAF算法我们可以减少点加操作。下图第5个算法可以看出，计算效率确实较Double-and-add有了一定的提升。我们接着对NAF也进行了预计算优化，可以看到效率得到显著的的提升。最后我们测试的算法是Montgomery阶梯算法，虽然效率不高，但每次执行循环体时的运算量是一样的.所以,Montgomery阶梯标量乘算法一定程度上可以抵抗简单边带信道攻击。性能测试结果如下：
 
  Benchmark &emsp; &emsp; &emsp; &emsp;&emsp; &emsp;&emsp; &emsp;  &emsp;&emsp;   &emsp;&emsp; &emsp; (multiply) &emsp; &emsp;&emsp;  &emsp;  Mode&emsp;  &emsp;  Cnt &emsp;  &emsp;    Score   &emsp;  Error &emsp;    &emsp; Units<br/>
- keyPairGenTest.testPointMultiply &emsp;&emsp; doubleAndAddInc &emsp; &emsp;&emsp;&emsp;   thrpt  &emsp;&emsp;&emsp;   3  &emsp; 423.421 ±  779.448 &emsp; &emsp; ops/s <br/>
- keyPairGenTest.testPointMultiply &emsp;&emsp; doubleAndAddDec &emsp; &emsp;&emsp;  &emsp;thrpt &emsp;&emsp;&emsp;    3  &emsp; 405.562 ±  191.200 &emsp;&emsp;  ops/s <br/>
- keyPairGenTest.testPointMultiply &emsp;&emsp;    doubleAndAddRecursive&emsp;   thrpt &emsp; &emsp;&emsp;   3  &emsp; 398.297 ±  279.366 &emsp; &emsp;  ops/s <br/>
- keyPairGenTest.testPointMultiply &emsp;&emsp;  doubleAndAddSearchTable  thrpt &emsp; &emsp; &emsp; 3 &emsp; 1303.378 ± 1224.276 &emsp;  ops/s <br/>
- keyPairGenTest.testPointMultiply &emsp;&emsp; NAFMultiply  &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;thrpt &emsp; &emsp;  3  &emsp; 473.275 ±  223.927 &emsp;  &emsp; ops/s <br/>
- keyPairGenTest.testPointMultiply &emsp;&emsp;   NAFMultiplySearchTable &emsp;thrpt  &emsp;&emsp; &emsp;  3 &emsp; 1737.896 ± 1997.995 &emsp; ops/s <br/>
- keyPairGenTest.testPointMultiply &emsp;&emsp;   montgomeryMultiply &emsp; &emsp; &emsp; thrpt &emsp; &emsp; 3  &emsp;&emsp; 291.631 ±  538.497 &emsp;  ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp; doubleAndAddInc &emsp; &emsp;&emsp;&emsp;   thrpt  &emsp;&emsp;&emsp;   3  &emsp; 423.421 ±  779.448 &emsp;     &emsp; ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp; doubleAndAddDec &emsp; &emsp;&emsp;  &emsp;thrpt &emsp;&emsp;&emsp;    3  &emsp; 405.562 ±  191.200 &emsp;   &emsp;  ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp; doubleAndAddRecursive&emsp;     thrpt &emsp; &emsp;&emsp;   3  &emsp; 398.297 ±  279.366 &emsp; &emsp;     ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp; doubleAndAddSearchTable    thrpt &emsp; &emsp; &emsp; 3 &emsp; 1303.378 ± 1224.276 &emsp;         ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp; NAFMultiply  &emsp; &emsp; &emsp; &emsp; &emsp;  &emsp;thrpt &emsp; &emsp;      3  &emsp; 473.275 ±  223.927 &emsp;  &emsp;     ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp; NAFMultiplySearchTable &emsp;     thrpt  &emsp;&emsp; &emsp;3 &emsp; 1737.896 ± 1997.995 &emsp;         ops/s <br/>
+ keyPairGenTest.testPointMultiply &emsp;&emsp; montgomeryMultiply &emsp; &emsp; &emsp; thrpt &emsp; &emsp;     3  &emsp;&emsp; 291.631 ±  538.497 &emsp;        ops/s <br/>
 
 ### 6 致谢
 
-非常荣幸能够参与本次的腾讯犀牛鸟开源人才培养计划，转瞬之间已进行尾声，非常感谢两位老师两个月以来对我们的细心指导，对我的成长帮助很大，这是我参与的第一个开源项目，对我而言意义非凡，第一次提交PR，第一次被合并，第一次接触密码学。通过参与本次项目让我椭圆曲线密码学的原理有了一定的了解，更让我对开源产生了极大的兴趣，希望我可以怀揣着这份兴趣，在开源的世界里继续探索。
+​        非常荣幸能够参与本次的腾讯犀牛鸟开源人才培养计划，转瞬之间已进行尾声，非常感谢两位老师两个月以来对我们的细心指导，对我的成长帮助很大，这是我参与的第一个开源项目，对我而言意义非凡，第一次提交PR，第一次被合并，第一次接触密码学。通过参与本次项目让我椭圆曲线密码学的原理有了一定的了解，更让我对开源产生了极大的兴趣，希望我可以怀揣着这份兴趣，在开源的世界里继续探索。
 
-最后，再次感谢两位老师，祝老师们工作顺利，万事胜意。
+​       最后，再次感谢两位老师，祝老师们工作顺利，万事胜意。
 
 
 
