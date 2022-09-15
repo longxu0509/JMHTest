@@ -1,6 +1,40 @@
 
 # 腾讯犀牛鸟开源人才培养计划
 ## KonaJDK项目
+### 任务一 OpenJDK缺陷修复
+
+初阶任务：OpenJDK缺陷修复 发现OpenJDK sun.security.util.math或sun.security.ec代码中的缺陷，修复它，并将补丁合入OpenJDK中。 所谓缺陷，可以是任何问题，哪怕是文字表述方面的。 在完成这个任务的过程中，同学们将会学到如何构建OpenJDK，并了解OpenJDK的贡献流程，以及熟悉特定领域的代码。
+
+**任务思路：**
+
+任务一主要是让我们了解OpenJDK的贡献流程，熟悉相关的代码。技术方案如下，首先去下载OpenJDK，并去了解如何构建它，具体可以参考OpenJDK 提供的文档。然后找到OpenJDK中sun.security.util.math和sun.security.ec的相关代码。发现这些代码中存在的一些缺陷，并尝试去修复它，并将补丁合并到OpenJDK中，该任务的主要步骤如下：
+
+① fork主仓库代码：首先要有自己的github账号，把 OpenJDK主仓库fork到自己的仓库下，点击fork按钮之后，就会在你的帐户中创建一个OpenJDK分叉。你可以进行更改并将任何代码推送到此fork，而不必担心会弄乱原始代码库。
+
+② 下载代码到本地：可以通过git clone命令将刚刚fork的OpenJDK代码下载到我们本地，这样我们就有了代码的本地副本。
+
+③ 创建分支：创建一个分支用于缺陷修复，在对代码进行任何修改时，最好的做法是为我们需要进行的修改创建一个新的特性分支，然后就可以在这个分支上进行相应的缺陷修复。这样可以确保我们保持master分支的整洁，并且能够在必要时简单地还原我们的代码或进行更新。
+
+④ 构建自己的OpenJDK，并测试：完成JDK的本地构建推荐在Linux系统上完成构建，使用JTREG 执行OpenJDK的回归测试。jtreg是[OpenJDK](https://so.csdn.net/so/search?q=OpenJDK&spm=1001.2101.3001.7020)测试框架使用的测试工具，主要用于回归测试。
+
+⑤ 将修改提交到分支：对于所做的所有更改，我们必须将他们提交到分支。确保添加有效的提交消息。
+
+⑥将分支push到fork的仓库：将本地分支更新到自己的GitHub OpenJDK分叉中来。
+
+⑦ 向OpenJDK提交Pull Request：将代码推送到fork的仓库后，就可以针对主仓库提交PR了。单击“Pull Request”按钮以启动新的PR。点击按钮之后你会看见你的fork版本库中的变化将与主版本库中的代码进行比较。你可以在提交更改之前查看更改并提供有效的更改描述。
+
+⑧ 等待OpenJDK Reviewer批准：等待你的PR被至少一个的OpenJDK Reviewer批准，表明Reviewer认同了你的改动。
+
+⑨ 向OpenJDK主分支合并PR：该步骤由导师来完成。
+
+向OpenJDK提交PR前，需要签署OCA协议。以下是提交的PR已被OpenJDK 合并。
+
+**8290669: Fix wording in sun.security.ec #9583**
+
+https://github.com/openjdk/jdk/pull/9583
+
+
+
 ### 任务二  ECDSA微基准测试
 
 使用不同的数据量128B 256B 1024B 1024k
