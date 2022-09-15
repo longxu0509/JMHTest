@@ -215,7 +215,7 @@ $l$表示k的二进制长度，二进制算法里非0比特的数量是$l/2$，�
 
 ![wps25.png](https://s2.loli.net/2022/09/15/aGuRQ1MwIcNzTPs.png)
 
-根据NAF的性质可知，二元NAF序列中非零个数约为![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps26.png)，则一次二元NAF标量乘法的运算时间![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps27.png)约为![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps28.png)次倍点和![img](file:///C:\Users\xldream\AppData\Local\Temp\ksohtml49700\wps29.png)次点加或点减运算所消耗时间的总和：
+根据NAF的性质可知，二元NAF序列中非零个数约为$l_2/3$，则一次二元NAF标量乘法的运算时间约$T_2$为$l_2$次倍点和$l_2/3$次点加或点减运算所消耗时间的总和：
 
 ![wps30.png](https://s2.loli.net/2022/09/15/oRiEdSKXNUcmqLJ.png)
 
@@ -270,7 +270,7 @@ Montgomery阶梯算法如下所示.实际上,算法中的p0总是存储了目前
 
 输入一个有效的Fq(q = p且p为大于3的素数，或q = 2 m )上椭圆曲线系统参数的集合。这里的SM2椭圆曲线参数如下：
 
-![image-20220915181011708](C:\Users\xldream\AppData\Roaming\Typora\typora-user-images\image-20220915181011708.png)
+![image.png](https://s2.loli.net/2022/09/15/NAoGQXfiUKxp4sl.png)
 
 输出：与椭圆曲线系统参数相关的一个秘钥对(d,P)。
 
