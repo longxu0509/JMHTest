@@ -164,18 +164,19 @@ Double-and-add为标量乘法中比较简单、最经典的算法，其一次运
       return res;
   }
 ```
-   3. Iterative algorithm, index decreasing
+   3. Recursive algorithm:
  ```
-  public ECPoint MontgomeryMuti(ECPoint p, BigInteger k) {
-        if (k.equals(BigInteger.ZERO))
-            return INFINTY;
-        else if (k.equals(BigInteger.ONE))
-            return p;
-        else if (k.mod(TWO).equals(BigInteger.ONE))
-            return pointAdd(p, MontgomeryMuti(p, k.subtract(BigInteger.ONE)));
-        else
-            return MontgomeryMuti(pointAdd(p, p), k.divide(TWO));
-    }
+ public ECPoint doubleAndAddRecursive(ECPoint p, BigInteger k) {  
+     if (k.equals(BigInteger.ZERO))  
+         return INFINTY;  
+     else if (k.equals(BigInteger.ONE))  
+         return p;  
+     else if (k.mod(TWO).equals(BigInteger.ONE))  
+         return pointAdd(p,  
+            doubleAndAddRecursive(p, k.subtract(BigInteger.ONE)));
+     else  
+         return doubleAndAddRecursive(pointAdd(p, p), k.divide(TWO));
+ }
  ```
 $l$表示k的二进制长度，二进制算法里非0比特的数量是$l/2$，故上述算法1和2执行一次标量乘的花费近似$l/2$次点加与$l$次倍点。算法3采用递归进行求解，算法复杂度上和算法1,2类似，优点是递归代码编写方便，容易理解，缺点是递归会占用额外的栈空间，造成空间的浪费，且执行效率没有提升。
 
